@@ -22,10 +22,12 @@ DistortionOversamplingAudioProcessor::DistortionOversamplingAudioProcessor()
                        ), treeState(*this, nullptr, "PARAMETERS", createParameterLayout())
 #endif
 {
+    treeState.addParameterListener("oversample", this);
 }
 
 DistortionOversamplingAudioProcessor::~DistortionOversamplingAudioProcessor()
 {
+    treeState.removeParameterListener("oversample", this);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout DistortionOversamplingAudioProcessor::createParameterLayout()
@@ -38,6 +40,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout DistortionOversamplingAudioP
     params.push_back(std::move(pOSToggle));
     
     return { params.begin(), params.end() };
+}
+
+void DistortionOversamplingAudioProcessor::parameterChanged(const juce::String &parameterID, float newValue)
+{
+    if (parameterID == "oversample")
+    {
+        osToggle = newValue;
+        std::cout << osToggle << std::endl;
+    }
 }
 
 //==============================================================================
