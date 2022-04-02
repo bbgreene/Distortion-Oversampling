@@ -63,6 +63,14 @@ private:
     bool osToggle {false};
     
     juce::dsp::Oversampling<float> oversamplingModule;
+    
+    //distortion
+    float dBInput {0.0};
+    float rawInput {1.0};
+    float softClipData(float samples);
+    
+    // softclip divisor. Creating this constexpr is more efficient than doing 2/pi for every sample in the audio block
+    static constexpr float piDivisor = 2.0 / juce::MathConstants<float>::pi;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DistortionOversamplingAudioProcessor)
 };

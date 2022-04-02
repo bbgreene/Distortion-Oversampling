@@ -23,11 +23,13 @@ DistortionOversamplingAudioProcessor::DistortionOversamplingAudioProcessor()
 #endif
 {
     treeState.addParameterListener("oversample", this);
+    treeState.addParameterListener("input", this);
 }
 
 DistortionOversamplingAudioProcessor::~DistortionOversamplingAudioProcessor()
 {
     treeState.removeParameterListener("oversample", this);
+    treeState.removeParameterListener("input", this);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout DistortionOversamplingAudioProcessor::createParameterLayout()
@@ -36,8 +38,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout DistortionOversamplingAudioP
     
     //make sure to update number of reservations after adding params
     auto pOSToggle = std::make_unique<juce::AudioParameterBool>("oversample", "Oversample", false);
+    auto pInput = std::make_unique<juce::AudioParameterFloat>("input", "Input", -24.0, 24.0, 0.0);
     
     params.push_back(std::move(pOSToggle));
+    params.push_back(std::move(pInput));
     
     return { params.begin(), params.end() };
 }
@@ -48,6 +52,12 @@ void DistortionOversamplingAudioProcessor::parameterChanged(const juce::String &
     {
         osToggle = newValue;
         std::cout << osToggle << std::endl;
+    }
+    if (parameterID == "input")
+    {
+        dBInput = newValue;
+        rawInput = juce::Decibels::decibelsToGain(newValue);
+        DBG(rawInput);
     }
 }
 
@@ -167,13 +177,48 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
         buffer.clear (i, 0, buffer.getNumSamples());
     
     juce::dsp::AudioBlock<float> block (buffer);
+    juce::dsp::AudioBlock<float> upSampledBlock (buffer);
     
+    // If statement of oversampling
     if(osToggle)
     {
-        oversamplingModule.processSamplesUp(block);
-        //do processing here
+        // if on, increase sample rate
+        upSampledBlock = oversamplingModule.processSamplesUp(block);
+        
+        // soft clip distortion
+        for (int sample = 0; sample < upSampledBlock.getNumSamples(); ++sample)
+        {
+            for (int ch = 0; ch < upSampledBlock.getNumChannels(); ++ch)
+            {
+                float* data = upSampledBlock.getChannelPointer(ch);
+            
+                data[sample] = softClipData(data[sample]);
+            }
+        }
+        //decrease sample rate
         oversamplingModule.processSamplesDown(block);
     }
+    
+    // if oversampling is off
+    else
+    {
+        // soft clip distortion
+        for (int sample = 0; sample < block.getNumSamples(); ++sample)
+        {
+            for (int ch = 0; ch < block.getNumChannels(); ++ch)
+            {
+                float* data = block.getChannelPointer(ch);
+            
+                data[sample] = softClipData(data[sample]);
+            }
+        }
+    }
+        
+}
+// softclip algorithim
+float DistortionOversamplingAudioProcessor::softClipData(float samples)
+{
+    return piDivisor * std::atan(samples * rawInput);
 }
 
 //==============================================================================
