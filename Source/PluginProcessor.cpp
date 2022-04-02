@@ -19,7 +19,7 @@ DistortionOversamplingAudioProcessor::DistortionOversamplingAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ), treeState(*this, nullptr, "PARAMETERS", createParameterLayout())
 #endif
 {
 }
@@ -178,7 +178,8 @@ bool DistortionOversamplingAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* DistortionOversamplingAudioProcessor::createEditor()
 {
-    return new DistortionOversamplingAudioProcessorEditor (*this);
+//    return new DistortionOversamplingAudioProcessorEditor (*this);
+    return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
