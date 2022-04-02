@@ -38,7 +38,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout DistortionOversamplingAudioP
     
     //make sure to update number of reservations after adding params
     auto pOSToggle = std::make_unique<juce::AudioParameterBool>("oversample", "Oversample", false);
-    auto pInput = std::make_unique<juce::AudioParameterFloat>("input", "Input", -24.0, 24.0, 0.0);
+    auto pInput = std::make_unique<juce::AudioParameterFloat>("input", "Input", 0.0, 24.0, 0.0);
     
     params.push_back(std::move(pOSToggle));
     params.push_back(std::move(pInput));
@@ -132,6 +132,7 @@ void DistortionOversamplingAudioProcessor::prepareToPlay (double sampleRate, int
     spec.numChannels = getTotalNumInputChannels();
     
     osToggle = treeState.getRawParameterValue("oversample")->load();
+    rawInput = juce::Decibels::decibelsToGain(static_cast<float>(*treeState.getRawParameterValue("input")));
     oversamplingModule.initProcessing(samplesPerBlock);
 }
 
@@ -236,15 +237,22 @@ juce::AudioProcessorEditor* DistortionOversamplingAudioProcessor::createEditor()
 //==============================================================================
 void DistortionOversamplingAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
+    // Save params
+    juce::MemoryOutputStream stream(destData, false);
+    treeState.state.writeToStream(stream);
 }
 
 void DistortionOversamplingAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+    // Recall params
+    auto tree = juce::ValueTree::readFromData(data, size_t(sizeInBytes));
+    
+    if(tree.isValid())
+    {
+        treeState.state = tree;
+        osToggle = *treeState.getRawParameterValue("oversample");
+        rawInput = juce::Decibels::decibelsToGain(static_cast<float>(*treeState.getRawParameterValue("input")));
+    }
 }
 
 //==============================================================================
