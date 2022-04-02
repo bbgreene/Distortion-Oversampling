@@ -60,8 +60,10 @@ private:
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void parameterChanged (const juce::String& parameterID, float newValue) override;
     
+    // oversampling bool initialisation
     bool osToggle {false};
     
+    // oversampling dsp module initialisation
     juce::dsp::Oversampling<float> oversamplingModule;
     
     //distortion
@@ -69,7 +71,7 @@ private:
     float rawInput {1.0};
     float softClipData(float samples);
     
-    // softclip divisor. Creating this constexpr is more efficient than doing 2/pi for every sample in the audio block
+    // softclip divisor. Creating this constexpr is more efficient than doing 2/pi for every sample in the audio block, because calculated at initialisation
     static constexpr float piDivisor = 2.0 / juce::MathConstants<float>::pi;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DistortionOversamplingAudioProcessor)
