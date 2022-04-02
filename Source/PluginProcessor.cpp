@@ -28,6 +28,18 @@ DistortionOversamplingAudioProcessor::~DistortionOversamplingAudioProcessor()
 {
 }
 
+juce::AudioProcessorValueTreeState::ParameterLayout DistortionOversamplingAudioProcessor::createParameterLayout()
+{
+    std::vector <std::unique_ptr<juce::RangedAudioParameter>> params;
+    
+    //make sure to update number of reservations after adding params
+    auto pOSToggle = std::make_unique<juce::AudioParameterBool>("oversample", "Oversample", false);
+    
+    params.push_back(std::move(pOSToggle));
+    
+    return { params.begin(), params.end() };
+}
+
 //==============================================================================
 const juce::String DistortionOversamplingAudioProcessor::getName() const
 {
