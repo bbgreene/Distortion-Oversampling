@@ -116,8 +116,12 @@ void DistortionOversamplingAudioProcessor::changeProgramName (int index, const j
 //==============================================================================
 void DistortionOversamplingAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+    juce::dsp::ProcessSpec spec;
+    spec.sampleRate = sampleRate;
+    spec.maximumBlockSize = samplesPerBlock;
+    spec.numChannels = getTotalNumInputChannels();
+    
+    osToggle = treeState.getRawParameterValue("oversample")->load();
 }
 
 void DistortionOversamplingAudioProcessor::releaseResources()
