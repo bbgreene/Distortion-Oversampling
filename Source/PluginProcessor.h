@@ -61,6 +61,8 @@ private:
     void parameterChanged (const juce::String& parameterID, float newValue) override;
     
     bool osToggle {false};
+    
+    juce::dsp::Oversampling<float> oversamplingModule;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DistortionOversamplingAudioProcessor)
 };

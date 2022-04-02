@@ -19,7 +19,7 @@ DistortionOversamplingAudioProcessor::DistortionOversamplingAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       ), treeState(*this, nullptr, "PARAMETERS", createParameterLayout())
+                       ), treeState(*this, nullptr, "PARAMETERS", createParameterLayout()), oversamplingModule(2, 2, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR)
 #endif
 {
     treeState.addParameterListener("oversample", this);
@@ -122,6 +122,7 @@ void DistortionOversamplingAudioProcessor::prepareToPlay (double sampleRate, int
     spec.numChannels = getTotalNumInputChannels();
     
     osToggle = treeState.getRawParameterValue("oversample")->load();
+    oversamplingModule.initProcessing(samplesPerBlock);
 }
 
 void DistortionOversamplingAudioProcessor::releaseResources()
