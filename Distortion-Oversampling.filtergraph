@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<FILTERGRAPH>
+  <FILTER uid="1" x="0.5" y="0.1">
+    <PLUGIN name="Audio Input" descriptiveName="" format="Internal" category="I/O devices"
+            manufacturer="JUCE" version="1.0" file="" uid="246006c0" isInstrument="0"
+            fileTime="0" infoUpdateTime="0" numInputs="0" numOutputs="2"
+            isShell="0"/>
+    <STATE>0.</STATE>
+    <LAYOUT>
+      <INPUTS>
+        <BUS index="0" layout="disabled"/>
+      </INPUTS>
+      <OUTPUTS>
+        <BUS index="0" layout="L R"/>
+      </OUTPUTS>
+    </LAYOUT>
+  </FILTER>
+  <FILTER uid="2" x="0.25" y="0.1">
+    <PLUGIN name="MIDI Input" descriptiveName="" format="Internal" category="I/O devices"
+            manufacturer="JUCE" version="1.0" file="" uid="a9e4f9eb" isInstrument="0"
+            fileTime="0" infoUpdateTime="0" numInputs="0" numOutputs="0"
+            isShell="0"/>
+    <STATE>0.</STATE>
+    <LAYOUT>
+      <INPUTS>
+        <BUS index="0" layout="disabled"/>
+      </INPUTS>
+      <OUTPUTS>
+        <BUS index="0" layout="disabled"/>
+      </OUTPUTS>
+    </LAYOUT>
+  </FILTER>
+  <FILTER uid="3" x="0.5" y="0.9">
+    <PLUGIN name="Audio Output" descriptiveName="" format="Internal" category="I/O devices"
+            manufacturer="JUCE" version="1.0" file="" uid="724248cb" isInstrument="0"
+            fileTime="0" infoUpdateTime="0" numInputs="2" numOutputs="0"
+            isShell="0"/>
+    <STATE>0.</STATE>
+    <LAYOUT>
+      <INPUTS>
+        <BUS index="0" layout="L R"/>
+      </INPUTS>
+      <OUTPUTS>
+        <BUS index="0" layout="disabled"/>
+      </OUTPUTS>
+    </LAYOUT>
+  </FILTER>
+  <FILTER uid="4" x="0.25" y="0.9">
+    <PLUGIN name="MIDI Output" descriptiveName="" format="Internal" category="I/O devices"
+            manufacturer="JUCE" version="1.0" file="" uid="9d5bbb00" isInstrument="0"
+            fileTime="0" infoUpdateTime="0" numInputs="0" numOutputs="0"
+            isShell="0"/>
+    <STATE>0.</STATE>
+    <LAYOUT>
+      <INPUTS>
+        <BUS index="0" layout="disabled"/>
+      </INPUTS>
+      <OUTPUTS>
+        <BUS index="0" layout="disabled"/>
+      </OUTPUTS>
+    </LAYOUT>
+  </FILTER>
+  <FILTER uid="10" x="0.51375" y="0.4365384615384615" uiLastX_Normal="1288"
+          uiLastY_Normal="748" uiopen_Normal="1">
+    <PLUGIN name="AUAudioFilePlayer" format="AudioUnit" category="Generator"
+            manufacturer="Apple" version="1.6.0" file="AudioUnit:Generators/augn,afpl,appl"
+            uid="6163676e" isInstrument="0" fileTime="0" infoUpdateTime="17feeffea7d"
+            numInputs="0" numOutputs="2" isShell="0"/>
+    <STATE>774.hAGaoMGcv.C1AHv.DTfAGfPBJr.IkXxIpvUag4VclE1XzUmbkIGUjEFcg8EDarVPUAkbkMWYzAUYxMWZyQWYtQ2TzEFcksTY4c0b0IFc4AWYWYWYxMWZu4FUzkGbk8EDOXVZrUVKxUlYkIWYtMVYyQkag0VYRDFbvwFPhxfFR2fCO.AVFkFak4TXsU1URU1Yo8lay8EDp7RUyUlby8Bbx81YxEVasklam8BQkM2Zz8FbuTzYmwVYyMGHBIWZtbWX1EZDTKwDTTgEWfQFdIUYmk1atQzakMGSu8FbZIUYmk1atQTXzE1WP.QRyMUYrU1XzUFYRU1Yo8laZIUYmk1at4TXsUFBOAAb...........b60L...F...Xki...fA....NDCD......fCw.A.....LSAn3++A............P...............................................................P4Lz.......jfVNU1cfHUYmk1atMcCNrAGcfgWIM2TkwVYiQWYjYTZrU1WP7yKUMWYxM2KvI2amIWXs0VZtc1KDU1bqQ2av8RQmcFakM2bf3VY2ABYxUWayAhcwDiK0.BYhwFHhE1by4RavMSndPsDSPQEV.BFhfvSP.G...........nXJC..fA...nkI...X....xV.AA.....frEPP......yO5P9+e.............D................................................................n96A......InkSkcGHRU1Yo8laIHQXlAGaP.fDgU2YtIMJo7.GVYTZrUFHwXkQowVYfHCVU4FcoQGakQF.H.PF.XB.q.PR.DE.YAfW..G.0Afd.rG.9Avf.vH.TBPv.LL.LCv1.XN.4G.AATP.3EPdAPX.KFflAvc.dGv4Aft.aI.WBbl.nIPaB7l.zIPdB.n.GB.......HP..........rB..................H.j</STATE>
+    <LAYOUT>
+      <INPUTS/>
+      <OUTPUTS>
+        <BUS index="0" layout="L R"/>
+      </OUTPUTS>
+    </LAYOUT>
+  </FILTER>
+  <FILTER uid="15" x="0.51125" y="0.5942307692307692" uiLastX_Normal="844"
+          uiLastY_Normal="855" uiopen_Normal="1">
+    <PLUGIN name="Distortion-Oversampling" format="VST3" category="Fx" manufacturer="yourcompany"
+            version="1.0.0" file="/Users/programming/Library/Audio/Plug-Ins/VST3/Distortion-Oversampling.vst3"
+            uid="acf78f75" isInstrument="0" fileTime="17fe9b3a978" infoUpdateTime="17feeffea7d"
+            numInputs="2" numOutputs="2" isShell="0"/>
+    <STATE>319.VMjLgXS....O+fWarAhckI2bo8la8HRLt.iHfTlai8FYo41Y8HRUTYTK3HxO9.BOVMEUy.Ea0cVZtMEcgQWY9vSRC8Vav8lak4Fc9DSM03BTEoFUAACUQQUUpQ0TA4hKAgjKTETRUAUSAAkKBolQY4BQ1ETQpwVX1U0Qi4BVWgkbUcUVtPDTBQjKt3hKt3hKt3hKt3hKUAkTEQ0TtPjYt7VTF4RP1AUP0k0UYgWSWg0bAcTXqEjYic1cVM1ZAAkKIAkKt3hKt3hKt3hKt3hKt3hKt3hKt3hKt3FUUMTUDQEdqw1XmE0UYQTQFM1YAAkKAgDUjYWQwHVdAAkKAwjKtLlKt3hKt3hKt3hYRUUSTEETIckVwTjQisVTTgkdEYDOujzPu0Fbu4VYtQmO77hUSQ0LPwVcmklaSQWXzUlO..</STATE>
+    <LAYOUT>
+      <INPUTS>
+        <BUS index="0" layout="L R"/>
+      </INPUTS>
+      <OUTPUTS>
+        <BUS index="0" layout="L R"/>
+      </OUTPUTS>
+    </LAYOUT>
+  </FILTER>
+  <CONNECTION srcFilter="10" srcChannel="0" dstFilter="15" dstChannel="0"/>
+  <CONNECTION srcFilter="10" srcChannel="1" dstFilter="15" dstChannel="1"/>
+  <CONNECTION srcFilter="15" srcChannel="0" dstFilter="3" dstChannel="0"/>
+  <CONNECTION srcFilter="15" srcChannel="1" dstFilter="3" dstChannel="1"/>
+</FILTERGRAPH>
