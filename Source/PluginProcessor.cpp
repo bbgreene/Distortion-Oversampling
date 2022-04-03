@@ -193,7 +193,7 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
             {
                 float* data = upSampledBlock.getChannelPointer(ch);
             
-                data[sample] = softClipData(data[sample]);
+                data[sample] = halfWaveData(data[sample]);
             }
         }
         //decrease sample rate
@@ -210,16 +210,53 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
             {
                 float* data = block.getChannelPointer(ch);
             
-                data[sample] = softClipData(data[sample]);
+                data[sample] = halfWaveData(data[sample]);
             }
         }
     }
         
 }
-// softclip algorithim
+// softclip algorithim (rounded)
 float DistortionOversamplingAudioProcessor::softClipData(float samples)
 {
-    return piDivisor * std::atan(samples * rawInput);
+    samples *= rawInput;
+    
+    return piDivisor * std::atan(samples );
+}
+
+// hardclip algorithim (any sample above 1 or -1 will be squared)
+float DistortionOversamplingAudioProcessor::hardClipData(float samples)
+{
+    samples *= rawInput;
+    
+    // will equate to true if the values is 1 or -1, because using absolute value
+    if (std::abs(samples) > 1.0)
+    {
+        // if true then this will output 1 (or -1)
+        samples *= 1.0 / std::abs(samples);
+    }
+    
+    return samples;
+}
+
+// halfwave rectification algorithim (all negative values assigned to zero)
+float DistortionOversamplingAudioProcessor::halfWaveData(float samples)
+{
+    samples *= rawInput;
+    samples += 0.25;
+    
+    // values below zero are softclipped
+    if (samples < 0.0)
+    {
+        samples = softClipData(samples);
+    }
+    // values above zero are hardclipped
+    else
+    {
+        samples = hardClipData(samples);
+    }
+    
+    return samples - 0.25;
 }
 
 //==============================================================================
