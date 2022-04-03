@@ -23,6 +23,7 @@ DistortionOversamplingAudioProcessor::DistortionOversamplingAudioProcessor()
 #endif
 {
     treeState.addParameterListener("oversample", this);
+    treeState.addParameterListener("model", this);
     treeState.addParameterListener("input", this);
     treeState.addParameterListener("bias", this);
 }
@@ -30,6 +31,7 @@ DistortionOversamplingAudioProcessor::DistortionOversamplingAudioProcessor()
 DistortionOversamplingAudioProcessor::~DistortionOversamplingAudioProcessor()
 {
     treeState.removeParameterListener("oversample", this);
+    treeState.removeParameterListener("model", this);
     treeState.removeParameterListener("input", this);
     treeState.removeParameterListener("bias", this);
 }
@@ -38,12 +40,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout DistortionOversamplingAudioP
 {
     std::vector <std::unique_ptr<juce::RangedAudioParameter>> params;
     
+    juce::StringArray disModels = {"Soft", "Hard", "Tube", "Half-Wave", "Full-Wave"};
+    
     //make sure to update number of reservations after adding params
     auto pOSToggle = std::make_unique<juce::AudioParameterBool>("oversample", "Oversample", false);
+    auto pModels = std::make_unique<juce::AudioParameterChoice>("model", "Model", disModels, 0);
     auto pInput = std::make_unique<juce::AudioParameterFloat>("input", "Input", 0.0, 24.0, 0.0);
     auto pBias = std::make_unique<juce::AudioParameterFloat>("bias", "Bias", 0.0, 1.0, 0.0);
     
     params.push_back(std::move(pOSToggle));
+    params.push_back(std::move(pModels));
     params.push_back(std::move(pInput));
     params.push_back(std::move(pBias));
     
@@ -56,6 +62,19 @@ void DistortionOversamplingAudioProcessor::parameterChanged(const juce::String &
     {
         osToggle = newValue;
         std::cout << osToggle << std::endl;
+    }
+    if (parameterID == "model")
+    {
+        switch (static_cast<int> (newValue))
+        {
+            case 0: disModel = DisModels::kSoft; break;
+            case 1: disModel = DisModels::kHard; break;
+            case 2: disModel = DisModels::kTube; break;
+            case 3: disModel = DisModels::kHalfWave; break;
+            case 4: disModel = DisModels::kFullWave; break;
+        }
+        
+        DBG(static_cast<int>(disModel));
     }
     if (parameterID == "input")
     {
@@ -202,7 +221,14 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
             {
                 float* data = upSampledBlock.getChannelPointer(ch);
             
-                data[sample] = fullWaveData(data[sample]);
+                switch (disModel)
+                {
+                    case DisModels::kSoft: data[sample] = softClipData(data[sample]); break;
+                    case DisModels::kHard: data[sample] = hardClipData(data[sample]); break;
+                    case DisModels::kTube: data[sample] = tubeData(data[sample]); break;
+                    case DisModels::kHalfWave: data[sample] = halfWaveData(data[sample]); break;
+                    case DisModels::kFullWave: data[sample] = fullWaveData(data[sample]); break;
+                }
             }
         }
         //decrease sample rate
@@ -219,7 +245,14 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
             {
                 float* data = block.getChannelPointer(ch);
             
-                data[sample] = fullWaveData(data[sample]);
+                switch (disModel)
+                {
+                    case DisModels::kSoft: data[sample] = softClipData(data[sample]); break;
+                    case DisModels::kHard: data[sample] = hardClipData(data[sample]); break;
+                    case DisModels::kTube: data[sample] = tubeData(data[sample]); break;
+                    case DisModels::kHalfWave: data[sample] = halfWaveData(data[sample]); break;
+                    case DisModels::kFullWave: data[sample] = fullWaveData(data[sample]); break;
+                }
             }
         }
     }
@@ -249,6 +282,28 @@ float DistortionOversamplingAudioProcessor::hardClipData(float samples)
     return samples;
 }
 
+// tube algorithim (postive values will hardclip, negative values will softclip)
+float DistortionOversamplingAudioProcessor::tubeData(float samples)
+{
+    samples *= rawInput;
+    samples += 0.1;
+    
+    // values below zero are softclipped
+    if (samples < 0.0)
+    {
+        samples = softClipData(samples);
+    }
+    // values above zero are hardclipped
+    else
+    {
+        samples = hardClipData(samples);
+    }
+    
+    samples -= 0.1;
+    
+    return softClipData(samples);
+}
+
 // half wave rectification (negative values are set to zero)
 float DistortionOversamplingAudioProcessor::halfWaveData(float samples)
 {
@@ -273,28 +328,6 @@ float DistortionOversamplingAudioProcessor::fullWaveData(float samples)
     }
     
     return samples;
-}
-
-// tube algorithim (postive values will hardclip, negative values will softclip)
-float DistortionOversamplingAudioProcessor::tubeData(float samples)
-{
-    samples *= rawInput;
-    samples += 0.1;
-    
-    // values below zero are softclipped
-    if (samples < 0.0)
-    {
-        samples = softClipData(samples);
-    }
-    // values above zero are hardclipped
-    else
-    {
-        samples = hardClipData(samples);
-    }
-    
-    samples -= 0.1;
-    
-    return softClipData(samples);
 }
 
 //==============================================================================
