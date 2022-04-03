@@ -26,6 +26,7 @@ DistortionOversamplingAudioProcessor::DistortionOversamplingAudioProcessor()
     treeState.addParameterListener("model", this);
     treeState.addParameterListener("input", this);
     treeState.addParameterListener("bias", this);
+    treeState.addParameterListener("cutoff", this);
 }
 
 DistortionOversamplingAudioProcessor::~DistortionOversamplingAudioProcessor()
@@ -34,6 +35,7 @@ DistortionOversamplingAudioProcessor::~DistortionOversamplingAudioProcessor()
     treeState.removeParameterListener("model", this);
     treeState.removeParameterListener("input", this);
     treeState.removeParameterListener("bias", this);
+    treeState.removeParameterListener("cutoff", this);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout DistortionOversamplingAudioProcessor::createParameterLayout()
@@ -47,11 +49,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout DistortionOversamplingAudioP
     auto pModels = std::make_unique<juce::AudioParameterChoice>("model", "Model", disModels, 0);
     auto pInput = std::make_unique<juce::AudioParameterFloat>("input", "Input", 0.0, 24.0, 0.0);
     auto pBias = std::make_unique<juce::AudioParameterFloat>("bias", "Bias", 0.0, 1.0, 0.0);
+    auto pCutoff = std::make_unique<juce::AudioParameterFloat>("cutoff", "Cutoff", juce::NormalisableRange<float> (20.0, 20000.0, 1.0, 0.22), 1000.0);
     
     params.push_back(std::move(pOSToggle));
     params.push_back(std::move(pModels));
     params.push_back(std::move(pInput));
     params.push_back(std::move(pBias));
+    params.push_back(std::move(pCutoff));
+
     
     return { params.begin(), params.end() };
 }
@@ -78,13 +83,26 @@ void DistortionOversamplingAudioProcessor::parameterChanged(const juce::String &
     }
     if (parameterID == "input")
     {
-        dBInput = newValue;
-        rawInput = juce::Decibels::decibelsToGain(newValue);
-        DBG(rawInput);
+        if (disModel == DisModels::kTube)
+        {
+            dBInput = newValue * 0.4; // scaling down input if it is a tube
+            rawInput = juce::Decibels::decibelsToGain(dBInput);
+        }
+
+        else
+        {
+            dBInput = newValue;
+            rawInput = juce::Decibels::decibelsToGain(dBInput);
+        }
     }
     if (parameterID == "bias")
     {
         bias = newValue;
+    }
+    if (parameterID == "cutoff")
+    {
+        cutoff = newValue;
+        lowPassFilter.setCutoffFrequency(cutoff);
     }
 }
 
@@ -162,6 +180,10 @@ void DistortionOversamplingAudioProcessor::prepareToPlay (double sampleRate, int
     rawInput = juce::Decibels::decibelsToGain(static_cast<float>(*treeState.getRawParameterValue("input")));
     oversamplingModule.initProcessing(samplesPerBlock);
     bias = treeState.getRawParameterValue("bias")->load();
+    
+    lowPassFilter.prepare(spec);
+    lowPassFilter.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
+    lowPassFilter.setCutoffFrequency(treeState.getRawParameterValue("cutoff")->load());
 }
 
 void DistortionOversamplingAudioProcessor::releaseResources()
@@ -233,6 +255,7 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
         }
         //decrease sample rate
         oversamplingModule.processSamplesDown(block);
+        lowPassFilter.process(juce::dsp::ProcessContextReplacing<float>(block));
     }
     
     // if oversampling is off
@@ -255,6 +278,8 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
                 }
             }
         }
+        
+        lowPassFilter.process(juce::dsp::ProcessContextReplacing<float>(block));
     }
         
 }
@@ -264,7 +289,7 @@ float DistortionOversamplingAudioProcessor::softClipData(float samples)
 {
     samples *= rawInput;
     
-    return piDivisor * std::atan(samples );
+    return piDivisor * std::atan(samples);
 }
 
 // hardclip algorithim (any sample above 1 or -1 will be squared)
@@ -286,21 +311,18 @@ float DistortionOversamplingAudioProcessor::hardClipData(float samples)
 float DistortionOversamplingAudioProcessor::tubeData(float samples)
 {
     samples *= rawInput;
-    samples += 0.1;
+//    samples += 0.1; // not including baising as it is causing off sets when no signal coming through...
     
-    // values below zero are softclipped
     if (samples < 0.0)
     {
         samples = softClipData(samples);
     }
-    // values above zero are hardclipped
     else
     {
         samples = hardClipData(samples);
     }
     
-    samples -= 0.1;
-    
+//    samples -= 0.1;
     return softClipData(samples);
 }
 
@@ -308,26 +330,32 @@ float DistortionOversamplingAudioProcessor::tubeData(float samples)
 float DistortionOversamplingAudioProcessor::halfWaveData(float samples)
 {
     samples *= rawInput;
+    samples += 0.15; // biasing up
     
     if (samples < 0.0)
     {
         samples = 0.0;
     }
     
-    return samples;
+    samples -= 0.15; // biasing down
+    
+    return softClipData(samples); // softclipping on the positive part of wave
 }
 
 // full wave retification (all negative values are mapped to corresponding positive values)
 float DistortionOversamplingAudioProcessor::fullWaveData(float samples)
 {
     samples *= rawInput;
+    samples += 0.1; // biasing up
     
     if (samples < 0.0)
     {
-        samples *= -1.0; // turns -1 values into positive. COuld use absoluted here, but mulitplication is more processor efficient
+        samples *= -1.0; // turns -1 values into positive. Could use absoluted here, but mulitplication is more processor efficient
     }
     
-    return samples;
+    samples -= 0.1; // biasing down
+    
+    return softClipData(samples);
 }
 
 //==============================================================================
