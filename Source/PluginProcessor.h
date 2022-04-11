@@ -67,10 +67,15 @@ private:
     juce::dsp::Oversampling<float> oversamplingModule;
     
     //variables
+
     float dBInput {0.0};
     float rawInput {1.0};
     float cutoff {1000.0};
     bool phase = false;
+    float blendSignal {0.0f};
+    float drySignal {0.0f};
+    
+    juce::SmoothedValue<float> mix {0.0f};
     
     // distortion models enum selection
     enum class DisModels

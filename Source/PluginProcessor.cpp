@@ -27,6 +27,7 @@ DistortionOversamplingAudioProcessor::DistortionOversamplingAudioProcessor()
     treeState.addParameterListener("input", this);
     treeState.addParameterListener("cutoff", this);
     treeState.addParameterListener("phase", this);
+    treeState.addParameterListener("mix", this);
 }
 
 DistortionOversamplingAudioProcessor::~DistortionOversamplingAudioProcessor()
@@ -36,6 +37,7 @@ DistortionOversamplingAudioProcessor::~DistortionOversamplingAudioProcessor()
     treeState.removeParameterListener("input", this);
     treeState.removeParameterListener("cutoff", this);
     treeState.removeParameterListener("phase", this);
+    treeState.removeParameterListener("mix", this);
     
 }
 
@@ -46,19 +48,22 @@ juce::AudioProcessorValueTreeState::ParameterLayout DistortionOversamplingAudioP
     juce::StringArray disModels = {"Soft", "Hard", "Tube", "Half-Wave", "Full-Wave"};
     
     //make sure to update number of reservations after adding params
+    params.reserve(5);
+    
     auto pOSToggle = std::make_unique<juce::AudioParameterBool>("oversample", "Oversample", false);
     auto pModels = std::make_unique<juce::AudioParameterChoice>("model", "Model", disModels, 0);
     auto pInput = std::make_unique<juce::AudioParameterFloat>("input", "Input", 0.0, 24.0, 0.0);
-    auto pCutoff = std::make_unique<juce::AudioParameterFloat>("cutoff", "Cutoff", juce::NormalisableRange<float> (20.0, 20000.0, 1.0, 0.22), 1000.0);
+    auto pCutoff = std::make_unique<juce::AudioParameterFloat>("cutoff", "Cutoff", juce::NormalisableRange<float> (20.0, 20000.0, 1.0, 0.22), 20000.0);
     auto pPhase = std::make_unique<juce::AudioParameterBool>("phase", "Phase", false);
+    auto pMix = std::make_unique<juce::AudioParameterFloat>("mix", "Mix", 0.0, 1.0, 1.0);
     
     params.push_back(std::move(pOSToggle));
     params.push_back(std::move(pModels));
     params.push_back(std::move(pInput));
     params.push_back(std::move(pCutoff));
     params.push_back(std::move(pPhase));
+    params.push_back(std::move(pMix));
 
-    
     return { params.begin(), params.end() };
 }
 
@@ -105,6 +110,10 @@ void DistortionOversamplingAudioProcessor::parameterChanged(const juce::String &
     if (parameterID == "phase")
     {
         phase = newValue;
+    }
+    if (parameterID == "mix")
+    {
+        mix = newValue;
     }
 }
 
@@ -183,6 +192,7 @@ void DistortionOversamplingAudioProcessor::prepareToPlay (double sampleRate, int
     phase = *treeState.getRawParameterValue("phase");
     disModel = static_cast<DisModels>(treeState.getRawParameterValue("model")->load()); // not saving for some reason
     oversamplingModule.initProcessing(samplesPerBlock);
+    mix = treeState.getRawParameterValue("mix")->load();
     
     lowPassFilter.prepare(spec);
     lowPassFilter.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
@@ -245,6 +255,8 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
             for (int ch = 0; ch < upSampledBlock.getNumChannels(); ++ch)
             {
                 float* data = upSampledBlock.getChannelPointer(ch);
+                
+                drySignal = data[sample]; // dry signal variable stored
             
                 switch (disModel)
                 {
@@ -254,6 +266,10 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
                     case DisModels::kHalfWave: data[sample] = halfWaveData(data[sample]); break;
                     case DisModels::kFullWave: data[sample] = fullWaveData(data[sample]); break;
                 }
+                
+                blendSignal = (1.0 - mix.getNextValue()) * drySignal + mix.getNextValue() * data[sample]; // process for mixing signals based on mix parameter
+                data[sample] = blendSignal;
+                
                 //phase flip!
                 if (phase)
                 {
@@ -275,6 +291,8 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
             for (int ch = 0; ch < block.getNumChannels(); ++ch)
             {
                 float* data = block.getChannelPointer(ch);
+                
+                drySignal = data[sample]; // dry signal variable stored
             
                 switch (disModel)
                 {
@@ -284,6 +302,10 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
                     case DisModels::kHalfWave: data[sample] = halfWaveData(data[sample]); break;
                     case DisModels::kFullWave: data[sample] = fullWaveData(data[sample]); break;
                 }
+                
+                blendSignal = (1.0 - mix.getNextValue()) * drySignal + mix.getNextValue() * data[sample]; // process for mixing signals based on mix parameter
+                data[sample] = blendSignal;
+                
                 //phase flip!
                 if (phase)
                 {
@@ -294,7 +316,6 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
         
         lowPassFilter.process(juce::dsp::ProcessContextReplacing<float>(block));
     }
-        
 }
 
 // softclip algorithim (rounded)
