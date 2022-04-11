@@ -178,8 +178,10 @@ void DistortionOversamplingAudioProcessor::prepareToPlay (double sampleRate, int
     spec.maximumBlockSize = samplesPerBlock;
     spec.numChannels = getTotalNumInputChannels();
     
-    osToggle = treeState.getRawParameterValue("oversample")->load();
+    osToggle = *treeState.getRawParameterValue("oversample");
     rawInput = juce::Decibels::decibelsToGain(static_cast<float>(*treeState.getRawParameterValue("input")));
+    phase = *treeState.getRawParameterValue("phase");
+    disModel = static_cast<DisModels>(treeState.getRawParameterValue("model")->load()); // not saving for some reason
     oversamplingModule.initProcessing(samplesPerBlock);
     
     lowPassFilter.prepare(spec);
@@ -252,7 +254,7 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
                     case DisModels::kHalfWave: data[sample] = halfWaveData(data[sample]); break;
                     case DisModels::kFullWave: data[sample] = fullWaveData(data[sample]); break;
                 }
-                
+                //phase flip!
                 if (phase)
                 {
                     data[sample] *= -1;
@@ -282,7 +284,7 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
                     case DisModels::kHalfWave: data[sample] = halfWaveData(data[sample]); break;
                     case DisModels::kFullWave: data[sample] = fullWaveData(data[sample]); break;
                 }
-                
+                //phase flip!
                 if (phase)
                 {
                     data[sample] *= -1;
@@ -396,9 +398,7 @@ void DistortionOversamplingAudioProcessor::setStateInformation (const void* data
     
     if(tree.isValid())
     {
-        treeState.state = tree;
-        osToggle = *treeState.getRawParameterValue("oversample");
-        rawInput = juce::Decibels::decibelsToGain(static_cast<float>(*treeState.getRawParameterValue("input")));
+        treeState.replaceState(tree);
     }
 }
 
