@@ -69,8 +69,8 @@ private:
     //variables
     float dBInput {0.0};
     float rawInput {1.0};
-    float bias {0.0};
     float cutoff {1000.0};
+    bool phase = false;
     
     // distortion models enum selection
     enum class DisModels

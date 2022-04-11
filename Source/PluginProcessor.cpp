@@ -25,8 +25,8 @@ DistortionOversamplingAudioProcessor::DistortionOversamplingAudioProcessor()
     treeState.addParameterListener("oversample", this);
     treeState.addParameterListener("model", this);
     treeState.addParameterListener("input", this);
-    treeState.addParameterListener("bias", this);
     treeState.addParameterListener("cutoff", this);
+    treeState.addParameterListener("phase", this);
 }
 
 DistortionOversamplingAudioProcessor::~DistortionOversamplingAudioProcessor()
@@ -34,8 +34,9 @@ DistortionOversamplingAudioProcessor::~DistortionOversamplingAudioProcessor()
     treeState.removeParameterListener("oversample", this);
     treeState.removeParameterListener("model", this);
     treeState.removeParameterListener("input", this);
-    treeState.removeParameterListener("bias", this);
     treeState.removeParameterListener("cutoff", this);
+    treeState.removeParameterListener("phase", this);
+    
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout DistortionOversamplingAudioProcessor::createParameterLayout()
@@ -48,14 +49,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout DistortionOversamplingAudioP
     auto pOSToggle = std::make_unique<juce::AudioParameterBool>("oversample", "Oversample", false);
     auto pModels = std::make_unique<juce::AudioParameterChoice>("model", "Model", disModels, 0);
     auto pInput = std::make_unique<juce::AudioParameterFloat>("input", "Input", 0.0, 24.0, 0.0);
-    auto pBias = std::make_unique<juce::AudioParameterFloat>("bias", "Bias", 0.0, 1.0, 0.0);
     auto pCutoff = std::make_unique<juce::AudioParameterFloat>("cutoff", "Cutoff", juce::NormalisableRange<float> (20.0, 20000.0, 1.0, 0.22), 1000.0);
+    auto pPhase = std::make_unique<juce::AudioParameterBool>("phase", "Phase", false);
     
     params.push_back(std::move(pOSToggle));
     params.push_back(std::move(pModels));
     params.push_back(std::move(pInput));
-    params.push_back(std::move(pBias));
     params.push_back(std::move(pCutoff));
+    params.push_back(std::move(pPhase));
 
     
     return { params.begin(), params.end() };
@@ -95,14 +96,15 @@ void DistortionOversamplingAudioProcessor::parameterChanged(const juce::String &
             rawInput = juce::Decibels::decibelsToGain(dBInput);
         }
     }
-    if (parameterID == "bias")
-    {
-        bias = newValue;
-    }
+    
     if (parameterID == "cutoff")
     {
         cutoff = newValue;
         lowPassFilter.setCutoffFrequency(cutoff);
+    }
+    if (parameterID == "phase")
+    {
+        phase = newValue;
     }
 }
 
@@ -179,7 +181,6 @@ void DistortionOversamplingAudioProcessor::prepareToPlay (double sampleRate, int
     osToggle = treeState.getRawParameterValue("oversample")->load();
     rawInput = juce::Decibels::decibelsToGain(static_cast<float>(*treeState.getRawParameterValue("input")));
     oversamplingModule.initProcessing(samplesPerBlock);
-    bias = treeState.getRawParameterValue("bias")->load();
     
     lowPassFilter.prepare(spec);
     lowPassFilter.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
@@ -236,7 +237,7 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
         // if on, increase sample rate
         upSampledBlock = oversamplingModule.processSamplesUp(block);
         
-        // soft clip distortion
+        // Distortion choice
         for (int sample = 0; sample < upSampledBlock.getNumSamples(); ++sample)
         {
             for (int ch = 0; ch < upSampledBlock.getNumChannels(); ++ch)
@@ -251,6 +252,11 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
                     case DisModels::kHalfWave: data[sample] = halfWaveData(data[sample]); break;
                     case DisModels::kFullWave: data[sample] = fullWaveData(data[sample]); break;
                 }
+                
+                if (phase)
+                {
+                    data[sample] *= -1;
+                }
             }
         }
         //decrease sample rate
@@ -261,7 +267,7 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
     // if oversampling is off
     else
     {
-        // soft clip distortion
+        // Distortion choice
         for (int sample = 0; sample < block.getNumSamples(); ++sample)
         {
             for (int ch = 0; ch < block.getNumChannels(); ++ch)
@@ -275,6 +281,11 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
                     case DisModels::kTube: data[sample] = tubeData(data[sample]); break;
                     case DisModels::kHalfWave: data[sample] = halfWaveData(data[sample]); break;
                     case DisModels::kFullWave: data[sample] = fullWaveData(data[sample]); break;
+                }
+                
+                if (phase)
+                {
+                    data[sample] *= -1;
                 }
             }
         }
@@ -388,7 +399,6 @@ void DistortionOversamplingAudioProcessor::setStateInformation (const void* data
         treeState.state = tree;
         osToggle = *treeState.getRawParameterValue("oversample");
         rawInput = juce::Decibels::decibelsToGain(static_cast<float>(*treeState.getRawParameterValue("input")));
-        bias = *treeState.getRawParameterValue("bias");
     }
 }
 
