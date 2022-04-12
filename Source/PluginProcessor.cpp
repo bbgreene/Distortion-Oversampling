@@ -23,9 +23,12 @@ DistortionOversamplingAudioProcessor::DistortionOversamplingAudioProcessor()
 #endif
 {
     treeState.addParameterListener("oversample", this);
+    treeState.addParameterListener("pre tone", this);
+    treeState.addParameterListener("pre cutoff", this);
     treeState.addParameterListener("model", this);
     treeState.addParameterListener("input", this);
-    treeState.addParameterListener("cutoff", this);
+    treeState.addParameterListener("post tone", this);
+    treeState.addParameterListener("post cutoff", this);
     treeState.addParameterListener("phase", this);
     treeState.addParameterListener("mix", this);
 }
@@ -33,9 +36,12 @@ DistortionOversamplingAudioProcessor::DistortionOversamplingAudioProcessor()
 DistortionOversamplingAudioProcessor::~DistortionOversamplingAudioProcessor()
 {
     treeState.removeParameterListener("oversample", this);
+    treeState.removeParameterListener("pre tone", this);
+    treeState.removeParameterListener("pre cutoff", this);
     treeState.removeParameterListener("model", this);
     treeState.removeParameterListener("input", this);
-    treeState.removeParameterListener("cutoff", this);
+    treeState.removeParameterListener("post tone", this);
+    treeState.removeParameterListener("post cutoff", this);
     treeState.removeParameterListener("phase", this);
     treeState.removeParameterListener("mix", this);
     
@@ -48,19 +54,25 @@ juce::AudioProcessorValueTreeState::ParameterLayout DistortionOversamplingAudioP
     juce::StringArray disModels = {"Soft", "Hard", "Tube", "Half-Wave", "Full-Wave"};
     
     //make sure to update number of reservations after adding params
-    params.reserve(5);
+    params.reserve(9);
     
     auto pOSToggle = std::make_unique<juce::AudioParameterBool>("oversample", "Oversample", false);
+    auto pPreFilter = std::make_unique<juce::AudioParameterBool>("pre tone", "Pre Tone", false);
+    auto pPreCutoff = std::make_unique<juce::AudioParameterFloat>("pre cutoff", "Cutoff", juce::NormalisableRange<float> (20.0, 20000.0, 1.0, 0.22), 20.0);
     auto pModels = std::make_unique<juce::AudioParameterChoice>("model", "Model", disModels, 0);
-    auto pInput = std::make_unique<juce::AudioParameterFloat>("input", "Input", 0.0, 24.0, 0.0);
-    auto pCutoff = std::make_unique<juce::AudioParameterFloat>("cutoff", "Cutoff", juce::NormalisableRange<float> (20.0, 20000.0, 1.0, 0.22), 20000.0);
+    auto pInput = std::make_unique<juce::AudioParameterFloat>("input", "Drive", 0.0, 24.0, 0.0);
+    auto pPostFilter = std::make_unique<juce::AudioParameterBool>("post tone", "Post Tone", false);
+    auto pPostCutoff = std::make_unique<juce::AudioParameterFloat>("post cutoff", "Cutoff", juce::NormalisableRange<float> (20.0, 20000.0, 1.0, 0.22), 20000.0);
     auto pPhase = std::make_unique<juce::AudioParameterBool>("phase", "Phase", false);
     auto pMix = std::make_unique<juce::AudioParameterFloat>("mix", "Mix", 0.0, 1.0, 1.0);
     
     params.push_back(std::move(pOSToggle));
+    params.push_back(std::move(pPreFilter));
+    params.push_back(std::move(pPreCutoff));
     params.push_back(std::move(pModels));
     params.push_back(std::move(pInput));
-    params.push_back(std::move(pCutoff));
+    params.push_back(std::move(pPostFilter));
+    params.push_back(std::move(pPostCutoff));
     params.push_back(std::move(pPhase));
     params.push_back(std::move(pMix));
 
@@ -74,6 +86,15 @@ void DistortionOversamplingAudioProcessor::parameterChanged(const juce::String &
         osToggle = newValue;
         std::cout << osToggle << std::endl;
     }
+    if (parameterID == "pre tone")
+    {
+        preFilter = newValue;
+    }
+    if (parameterID == "pre cutoff")
+    {
+        preCutoff = newValue;
+        preHighPassFilter.setCutoffFrequency(preCutoff);
+    }
     if (parameterID == "model")
     {
         switch (static_cast<int> (newValue))
@@ -84,28 +105,21 @@ void DistortionOversamplingAudioProcessor::parameterChanged(const juce::String &
             case 3: disModel = DisModels::kHalfWave; break;
             case 4: disModel = DisModels::kFullWave; break;
         }
-        
         DBG(static_cast<int>(disModel));
     }
     if (parameterID == "input")
     {
-        if (disModel == DisModels::kTube)
-        {
-            dBInput = newValue * 0.4; // scaling down input if it is a tube
-            rawInput = juce::Decibels::decibelsToGain(dBInput);
-        }
-
-        else
-        {
-            dBInput = newValue;
-            rawInput = juce::Decibels::decibelsToGain(dBInput);
-        }
+        dBInput = newValue;
+        rawInput = juce::Decibels::decibelsToGain(dBInput);
     }
-    
-    if (parameterID == "cutoff")
+    if (parameterID == "post tone")
     {
-        cutoff = newValue;
-        lowPassFilter.setCutoffFrequency(cutoff);
+        postFilter = newValue;
+    }
+    if (parameterID == "post cutoff")
+    {
+        postCutoff = newValue;
+        postLowPassFilter.setCutoffFrequency(postCutoff);
     }
     if (parameterID == "phase")
     {
@@ -188,15 +202,21 @@ void DistortionOversamplingAudioProcessor::prepareToPlay (double sampleRate, int
     spec.numChannels = getTotalNumInputChannels();
     
     osToggle = *treeState.getRawParameterValue("oversample");
-    rawInput = juce::Decibels::decibelsToGain(static_cast<float>(*treeState.getRawParameterValue("input")));
-    phase = *treeState.getRawParameterValue("phase");
+    preFilter = *treeState.getRawParameterValue("pre tone");
     disModel = static_cast<DisModels>(treeState.getRawParameterValue("model")->load()); // not saving for some reason
+    rawInput = juce::Decibels::decibelsToGain(static_cast<float>(*treeState.getRawParameterValue("input"))); // drive
+    postFilter = *treeState.getRawParameterValue("post tone");
+    phase = *treeState.getRawParameterValue("phase");
     oversamplingModule.initProcessing(samplesPerBlock);
     mix = treeState.getRawParameterValue("mix")->load();
     
-    lowPassFilter.prepare(spec);
-    lowPassFilter.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
-    lowPassFilter.setCutoffFrequency(treeState.getRawParameterValue("cutoff")->load());
+    preHighPassFilter.prepare(spec);
+    preHighPassFilter.setType(juce::dsp::LinkwitzRileyFilterType::highpass);
+    preHighPassFilter.setCutoffFrequency(treeState.getRawParameterValue("pre cutoff")->load());
+    
+    postLowPassFilter.prepare(spec);
+    postLowPassFilter.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
+    postLowPassFilter.setCutoffFrequency(treeState.getRawParameterValue("post cutoff")->load());
 }
 
 void DistortionOversamplingAudioProcessor::releaseResources()
@@ -243,6 +263,12 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
     juce::dsp::AudioBlock<float> block (buffer);
     juce::dsp::AudioBlock<float> upSampledBlock (buffer);
     
+    // pre tone
+    if (preFilter)
+    {
+        preHighPassFilter.process(juce::dsp::ProcessContextReplacing<float>(block));
+    }
+    
     // If statement of oversampling
     if(osToggle)
     {
@@ -279,7 +305,12 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
         }
         //decrease sample rate
         oversamplingModule.processSamplesDown(block);
-        lowPassFilter.process(juce::dsp::ProcessContextReplacing<float>(block));
+        
+        // post tone
+        if (postFilter)
+        {
+            postLowPassFilter.process(juce::dsp::ProcessContextReplacing<float>(block));
+        }
     }
     
     // if oversampling is off
@@ -314,7 +345,11 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
             }
         }
         
-        lowPassFilter.process(juce::dsp::ProcessContextReplacing<float>(block));
+        // post tone
+        if (postFilter)
+        {
+            postLowPassFilter.process(juce::dsp::ProcessContextReplacing<float>(block));
+        }
     }
 }
 
