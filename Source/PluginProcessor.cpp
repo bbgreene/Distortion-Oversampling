@@ -58,11 +58,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout DistortionOversamplingAudioP
     
     auto pOSToggle = std::make_unique<juce::AudioParameterBool>("oversample", "Oversample", false);
     auto pPreFilter = std::make_unique<juce::AudioParameterBool>("pre tone", "Pre Tone", false);
-    auto pPreCutoff = std::make_unique<juce::AudioParameterFloat>("pre cutoff", "Cutoff", juce::NormalisableRange<float> (20.0, 20000.0, 1.0, 0.22), 20.0);
+    auto pPreCutoff = std::make_unique<juce::AudioParameterFloat>("pre cutoff", "Pre HP Cutoff", juce::NormalisableRange<float> (20.0, 20000.0, 1.0, 0.22), 20.0);
     auto pModels = std::make_unique<juce::AudioParameterChoice>("model", "Model", disModels, 0);
     auto pInput = std::make_unique<juce::AudioParameterFloat>("input", "Drive", 0.0, 24.0, 0.0);
     auto pPostFilter = std::make_unique<juce::AudioParameterBool>("post tone", "Post Tone", false);
-    auto pPostCutoff = std::make_unique<juce::AudioParameterFloat>("post cutoff", "Cutoff", juce::NormalisableRange<float> (20.0, 20000.0, 1.0, 0.22), 20000.0);
+    auto pPostCutoff = std::make_unique<juce::AudioParameterFloat>("post cutoff", "Post LP Cutoff", juce::NormalisableRange<float> (20.0, 20000.0, 1.0, 0.22), 20000.0);
     auto pPhase = std::make_unique<juce::AudioParameterBool>("phase", "Phase", false);
     auto pMix = std::make_unique<juce::AudioParameterFloat>("mix", "Mix", 0.0, 1.0, 1.0);
     
@@ -202,12 +202,12 @@ void DistortionOversamplingAudioProcessor::prepareToPlay (double sampleRate, int
     spec.numChannels = getTotalNumInputChannels();
     
     osToggle = *treeState.getRawParameterValue("oversample");
+    oversamplingModule.initProcessing(samplesPerBlock);
     preFilter = *treeState.getRawParameterValue("pre tone");
     disModel = static_cast<DisModels>(treeState.getRawParameterValue("model")->load()); // not saving for some reason
     rawInput = juce::Decibels::decibelsToGain(static_cast<float>(*treeState.getRawParameterValue("input"))); // drive
     postFilter = *treeState.getRawParameterValue("post tone");
     phase = *treeState.getRawParameterValue("phase");
-    oversamplingModule.initProcessing(samplesPerBlock);
     mix = treeState.getRawParameterValue("mix")->load();
     
     preHighPassFilter.prepare(spec);
