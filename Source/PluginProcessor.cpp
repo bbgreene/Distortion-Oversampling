@@ -51,7 +51,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout DistortionOversamplingAudioP
 {
     std::vector <std::unique_ptr<juce::RangedAudioParameter>> params;
     
-    juce::StringArray disModels = {"Soft", "Hard", "Tube", "Half-Wave", "Full-Wave"};
+    juce::StringArray disModels = {"Soft", "Hard", "Tube", "Half-Wave", "Full-Wave", "Sine"};
     
     //make sure to update number of reservations after adding params
     params.reserve(9);
@@ -104,6 +104,7 @@ void DistortionOversamplingAudioProcessor::parameterChanged(const juce::String &
             case 2: disModel = DisModels::kTube; break;
             case 3: disModel = DisModels::kHalfWave; break;
             case 4: disModel = DisModels::kFullWave; break;
+            case 5: disModel = DisModels::kSine; break;
         }
         DBG(static_cast<int>(disModel));
     }
@@ -291,6 +292,7 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
                     case DisModels::kTube: data[sample] = tubeData(data[sample]); break;
                     case DisModels::kHalfWave: data[sample] = halfWaveData(data[sample]); break;
                     case DisModels::kFullWave: data[sample] = fullWaveData(data[sample]); break;
+                    case DisModels::kSine: data[sample] = sineData(data[sample]); break;
                 }
                 
                 blendSignal = (1.0 - mix.getNextValue()) * drySignal + mix.getNextValue() * data[sample]; // process for mixing signals based on mix parameter
@@ -332,6 +334,7 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
                     case DisModels::kTube: data[sample] = tubeData(data[sample]); break;
                     case DisModels::kHalfWave: data[sample] = halfWaveData(data[sample]); break;
                     case DisModels::kFullWave: data[sample] = fullWaveData(data[sample]); break;
+                    case DisModels::kSine: data[sample] = sineData(data[sample]); break;
                 }
                 
                 blendSignal = (1.0 - mix.getNextValue()) * drySignal + mix.getNextValue() * data[sample]; // process for mixing signals based on mix parameter
@@ -427,6 +430,13 @@ float DistortionOversamplingAudioProcessor::fullWaveData(float samples)
     return softClipData(samples);
 }
 
+// sine/fold over clipping
+float DistortionOversamplingAudioProcessor::sineData(float samples)
+{
+    samples *= rawInput;
+    
+    return std::sin(samples);
+}
 //==============================================================================
 bool DistortionOversamplingAudioProcessor::hasEditor() const
 {

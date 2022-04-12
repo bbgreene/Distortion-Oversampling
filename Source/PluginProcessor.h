@@ -91,7 +91,8 @@ private:
         kHard,
         kTube,
         kHalfWave,
-        kFullWave
+        kFullWave,
+        kSine
     };
     
     DisModels disModel = DisModels::kSoft;
@@ -102,6 +103,7 @@ private:
     float tubeData(float samples);
     float halfWaveData(float samples);
     float fullWaveData(float samples);
+    float sineData(float samples);
     
     // softclip divisor. Creating this constexpr is more efficient than doing 2/pi for every sample in the audio block, because calculated at initialisation
     static constexpr float piDivisor = 2.0 / juce::MathConstants<float>::pi;
