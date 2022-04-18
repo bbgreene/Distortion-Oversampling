@@ -205,7 +205,7 @@ void DistortionOversamplingAudioProcessor::prepareToPlay (double sampleRate, int
     osToggle = *treeState.getRawParameterValue("oversample");
     oversamplingModule.initProcessing(samplesPerBlock);
     preFilter = *treeState.getRawParameterValue("pre tone");
-    disModel = static_cast<DisModels>(treeState.getRawParameterValue("model")->load()); // not saving for some reason
+    disModel = static_cast<DisModels>(treeState.getRawParameterValue("model")->load()); // not saving/recalling for some reason
     rawInput = juce::Decibels::decibelsToGain(static_cast<float>(*treeState.getRawParameterValue("input"))); // drive
     postFilter = *treeState.getRawParameterValue("post tone");
     phase = *treeState.getRawParameterValue("phase");
@@ -430,12 +430,12 @@ float DistortionOversamplingAudioProcessor::fullWaveData(float samples)
     return softClipData(samples);
 }
 
-// sine/fold over clipping
+// sine/fold over clipping with limiting output (0.5)
 float DistortionOversamplingAudioProcessor::sineData(float samples)
 {
     samples *= rawInput;
     
-    return std::sin(samples);
+    return std::sin(0.5 * samples);
 }
 //==============================================================================
 bool DistortionOversamplingAudioProcessor::hasEditor() const
