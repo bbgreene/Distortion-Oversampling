@@ -359,7 +359,7 @@ void DistortionOversamplingAudioProcessor::processBlock (juce::AudioBuffer<float
 // softclip algorithim (rounded)
 float DistortionOversamplingAudioProcessor::softClipData(float samples)
 {
-    samples *= rawInput;
+    samples *= rawInput * 6.0;
     
     return piDivisor * std::atan(samples);
 }
